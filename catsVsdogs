@@ -1,1 +1,154 @@
+from numpy.lib import tracemalloc_domain
+from tensorflow_datasets import image_classification
+import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+import matplotlib.pyplot as plt
+
+#load dataset
+(train_images_origin, train_labels_origin), (test_images_origin, test_labels_origin) = keras.datasets.cifar10.load_data()
+class_names=['cat','dog']
+
+ls_train_image=[]
+ls_train_label=[]
+ls_index_train=[]
+train_image_=[]
+train_label=[]
+ls_test_image=[]
+ls_test_label=[]
+ls_index_test=[]
+test_image_=[]
+test_label=[]
+
+i=0
+for x in train_labels_origin:
+  if x == 3 or x == 5:
+    if x ==3:
+      x=0    
+    else:
+      x=1
+    ls_train_label.append(x)
+    ls_index_train.append(i) 
+  i= i +1
+i=0
+for x in train_images_origin:
+  if i in ls_index_train:
+    ls_train_image.append(x)
+  i=i+1
+train_images=np.stack(ls_train_image)
+train_labels=np.stack(ls_train_label)
+i=0
+for x in test_labels_origin:
+  if x == 3 or x == 5:
+    if x ==3:
+      x=0
+      
+    else:
+      x=1
+    ls_test_label.append(x)
+    ls_index_test.append(i) 
+  i= i +1
+i=0
+for x in test_images_origin:
+  if i in ls_index_test:
+    ls_test_image.append(x)
+  i=i+1
+test_images=np.stack(ls_test_image)
+test_labels=np.stack(ls_test_label)
+
+i=0
+fig,ax = plt.subplots(10,5,figsize=(8,8))
+for raw in range(10):
+  for col in range(5):
+    ax[raw,col].imshow(train_images[i])
+    i+=1
+plt.show()
+
+#Create a Multi Layer Perceptron (MLP)
+train_images= train_images/ 255.0
+test_images= test_images / 255.0
+
+
+model = keras.Sequential([
+    keras.layers.Flatten(input_shape=(32,32,3 )),
+    keras.layers.Dense(128, activation='relu'),
+    keras.layers.Dense(10)
+])
+
+
+model.compile(optimizer='adam',
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+
+
+
+#Train the model
+history=model.fit(train_images, train_labels, epochs=10)
+
+#Plots
+train_acc=history.history["accuracy"]
+train_loss=history.history["loss"]
+epoches=range((len(train_acc)))
+plt.plot(epoches,train_acc,"r",label="accuracy")
+plt.plot(epoches,train_loss,"b",label="loss")
+plt.title("Loss and Accuracy values over the epochs during training.")
+plt.xlabel("epoches")
+plt.ylabel("%")
+plt.legend()
+
+#Run inference
+test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
+print('\nTest accuracy:', test_acc)
+
+
+
+probability_model = tf.keras.Sequential([model, 
+           tf.keras.layers.Softmax()])
+
+predictions = probability_model.predict(test_images)
+
+
+#Test samples
+def plot_image(i, predictions_array, true_label, img):
+  predictions_array, true_label, img = predictions_array, true_label[i], img[i]
+  plt.grid(False)
+  plt.xticks([])
+  plt.yticks([])
+
+  plt.imshow(img, cmap=plt.cm.binary)
+
+  predicted_label = np.argmax(predictions_array)
+  if predicted_label == true_label:
+    color = 'blue'
+  else:
+    color = 'red'
+  plt.xlabel("{} {:2.0f}% ({})".format(class_names[predicted_label],
+                           100*np.max(predictions_array),
+                           class_names[true_label]),
+                           color=color)
+
+def plot_value_array(i, predictions_array, true_label):
+  predictions_array, true_label = predictions_array, true_label[i]
+  plt.grid(False)
+  plt.xticks(range(2))
+  plt.yticks([])
+  thisplot = plt.bar(range(10), predictions_array, color="#777777")
+  plt.ylim([0, 1])
+  predicted_label = np.argmax(predictions_array)
+
+  thisplot[predicted_label].set_color('red')
+  thisplot[true_label].set_color('blue')
+
+i=0
+for i in range(10):
+  test_labels[i]
+  plt.figure(figsize=(4,3))
+  plt.subplot(1,2,1)
+  plot_image(i, predictions[i], test_labels, test_images)
+  plt.subplot(1,2,2)
+  plot_value_array(i, predictions[i],  test_labels)
+  i+=1
+  plt.show()
+
+
 
